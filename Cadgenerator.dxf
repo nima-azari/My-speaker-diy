@@ -1,0 +1,73 @@
+import ezdxf
+
+def create_panel_dxf(filename, width, height, holes):
+    """
+    Creates a DXF file for a speaker panel.
+    width, height: dimensions of the board in mm.
+    holes: list of tuples (x, y, diameter) for circular cutouts.
+           x, y are coordinates from the BOTTOM-LEFT corner.
+    """
+    doc = ezdxf.new()
+    msp = doc.modelspace()
+
+    # 1. Draw the Panel Outline (Rectangle)
+    msp.add_lwpolyline([(0, 0), (width, 0), (width, height), (0, height), (0, 0)], close=True)
+
+    # 2. Draw the Holes
+    for x, y, diameter in holes:
+        radius = diameter / 2
+        msp.add_circle((x, y), radius)
+        
+        # Add center mark (crosshair) for easy drilling alignment
+        center_mark_size = 5
+        msp.add_line((x - center_mark_size, y), (x + center_mark_size, y))
+        msp.add_line((x, y - center_mark_size), (x, y + center_mark_size))
+
+    # 3. Add Dimensions (Optional text label)
+    msp.add_text(f"Panel: {width}x{height}mm", dxfattribs={'height': 5}).set_pos((5, 5))
+
+    doc.saveas(filename)
+    print(f"Generated: {filename}")
+
+# --- CONFIGURATION (Based on Dayton Audio Drivers) ---
+
+# 1. Satellite Front Panel (200mm H x 140mm W)
+# Tweeter: Dayton TD20F-4 (Cutout ~36mm) -> Placed 50mm from Top
+# Woofer: Dayton TCP115-4 (Cutout ~93mm) -> Placed 130mm from Top
+sat_width = 140
+sat_height = 200
+sat_holes = [
+    (70, 150, 36),  # Tweeter: X=Center, Y=200-50
+    (70, 70, 93)    # Woofer:  X=Center, Y=200-130
+]
+
+# 2. Subwoofer Front Panel (320mm H x 320mm W)
+# Driver: Dayton DCS205-4 (Cutout ~183mm) -> Placed Dead Center
+sub_width = 320
+sub_height = 320
+sub_holes = [
+    (160, 160, 183) # Driver: X=Center, Y=Center
+]
+
+# 3. Subwoofer Back Panel (320mm H x 320mm W)
+# Port Tube: 50mm PVC (External dia ~50mm, Hole ~51mm for snug fit) -> Top Center
+# Terminal Cup: Standard Round Cup (Cutout ~50mm) -> Bottom Center
+sub_back_holes = [
+    (160, 240, 51), # Port: X=Center, Y=320-80 (High up)
+    (160, 80, 50)   # Terminal: X=Center, Y=80 (Low down)
+]
+
+# --- GENERATION ---
+if __name__ == "__main__":
+    print("Generating DXF files for DIY Speaker System...")
+    
+    # Generate Satellite Front
+    create_panel_dxf("satellite_front.dxf", sat_width, sat_height, sat_holes)
+    
+    # Generate Subwoofer Front
+    create_panel_dxf("subwoofer_front.dxf", sub_width, sub_height, sub_holes)
+    
+    # Generate Subwoofer Back
+    create_panel_dxf("subwoofer_back.dxf", sub_width, sub_height, sub_back_holes)
+    
+    print("Done! Files are ready for CNC or Printing.")
